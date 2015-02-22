@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby 
+
+if ARGV[0] == "--help" || ARGV[0] == "-h"
+  puts "Usage:"
+  puts "  sports_tracker_gpx_to_csv [FILENAME]\n\n"
+  puts "Description:"
+  puts "  Will convert a .gpx file exported from sports-tracker.com into a .csv file."
+elsif ARGV[0]
+  source_path = ARGV[0]
+  output_path = "#{source_path[0..-5]}.csv"
+  output_file = File.new(output_path, "w") 
+
+  File.readlines(source_path).each do |line|
+
+    if match_lat_lng = line.match(/lat="(.*)".*lon="(.*)"/)
+      lat, lng = match_lat_lng.captures
+      output_file.write("#{lat}, #{lng}, ")
+    elsif match_ele = line.match(/<ele>(.*)<\/ele>/)
+      ele = match_ele.captures[0]
+      output_file.write("#{ele}, ")
+    elsif match_date_and_time = line.match(/<time>(.*)[a-zA-Z](.*)[a-zA-Z]<\/time>/)
+      date, time = match_date_and_time.captures
+      output_file.write("#{date}, #{time}\n")
+    end
+
+  end
+else
+  puts "Error: no file was specified"
+  puts "Options are..."
+  puts "  sports_tracker_gpx_to_csv [FILENAME]"
+  puts "  sports_tracker_gpx_to_csv --help"
+end
