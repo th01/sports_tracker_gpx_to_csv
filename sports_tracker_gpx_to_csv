@@ -1,4 +1,59 @@
-#!/usr/bin/env ruby 
+#!/usr/bin/env ruby
+
+require 'geocoder'
+require 'chronic'
+
+module GpxToCsv
+  extend self
+  def convert(source_path)
+
+    @total_distance = 0
+    output_path = "#{source_path[0..-5]}.csv"
+    @output_file = File.new(output_path, "w")
+
+    def write_to_csv(latitude="latitude",longitude="longitude",elevation="elevation",velocity="velocity",distance="distance",date="date",time="time",elapsed_time="elapsed_time")
+      @output_file.write("#{latitude},#{longitude},#{elevation},#{velocity},#{distance},#{date},#{time},#{elapsed_time}\n")
+    end
+
+    write_to_csv
+
+    def set_velocity(lat, lng, date_time, last_lat, last_lng, last_date_time)
+        distance = Geocoder::Calculations.distance_between([lat, lng],[last_lat, last_lng], options = {units: :mi})
+        @total_distance += distance
+        time = ((date_time - last_date_time) / 3600)
+        if distance / time > 85
+          puts distance
+          puts last_date_time
+          puts date_time
+          puts distance / time
+        end
+        distance / time
+    end
+
+    def set_elapsed_time(time)
+      @start ||= time
+      return time - @start
+    end
+
+    File.readlines(source_path).each do |line|
+
+      if match_lat_lng = line.match(/lat="(.*)".*lon="(.*)"/)
+        @lat, @lng = match_lat_lng.captures
+      elsif match_ele = line.match(/<ele>(.*)<\/ele>/)
+        @ele = match_ele.captures[0].to_f * 3.28084
+      elsif match_date_and_time = line.match(/<time>(.*)[a-zA-Z](.*)[a-zA-Z]<\/time>/)
+        @date, @time = match_date_and_time.captures
+        @date_time = Chronic.parse("#{@date} #{@time}")
+        if @last_lat && @last_lng && @last_date_time && (@last_date_time != @date_time)
+          @velocity = set_velocity(@lat, @lng, @date_time, @last_lat, @last_lng, @last_date_time)
+        end
+        @elapsed_time = set_elapsed_time(@date_time)
+        write_to_csv(@lat, @lng, @ele, @velocity, @total_distance, @date, @time, @elapsed_time)
+        @last_lat, @last_lng, @last_date_time = @lat, @lng, @date_time 
+      end
+    end
+  end
+end
 
 if ARGV[0] == "--help" || ARGV[0] == "-h"
   puts "Usage:"
@@ -6,24 +61,7 @@ if ARGV[0] == "--help" || ARGV[0] == "-h"
   puts "Description:"
   puts "  Will convert a .gpx file exported from sports-tracker.com into a .csv file."
 elsif ARGV[0]
-  source_path = ARGV[0]
-  output_path = "#{source_path[0..-5]}.csv"
-  output_file = File.new(output_path, "w") 
-
-  File.readlines(source_path).each do |line|
-
-    if match_lat_lng = line.match(/lat="(.*)".*lon="(.*)"/)
-      lat, lng = match_lat_lng.captures
-      output_file.write("#{lat}, #{lng}, ")
-    elsif match_ele = line.match(/<ele>(.*)<\/ele>/)
-      ele = match_ele.captures[0]
-      output_file.write("#{ele}, ")
-    elsif match_date_and_time = line.match(/<time>(.*)[a-zA-Z](.*)[a-zA-Z]<\/time>/)
-      date, time = match_date_and_time.captures
-      output_file.write("#{date}, #{time}\n")
-    end
-
-  end
+  GpxToCsv.convert(ARGV[0])
 else
   puts "Error: no file was specified"
   puts "Options are..."
