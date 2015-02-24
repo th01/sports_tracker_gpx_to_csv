@@ -21,12 +21,6 @@ module GpxToCsv
         distance = Geocoder::Calculations.distance_between([lat, lng],[last_lat, last_lng], options = {units: :mi})
         @total_distance += distance
         time = ((date_time - last_date_time) / 3600)
-        if distance / time > 85
-          puts distance
-          puts last_date_time
-          puts date_time
-          puts distance / time
-        end
         distance / time
     end
 
