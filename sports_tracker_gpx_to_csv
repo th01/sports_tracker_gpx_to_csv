@@ -11,7 +11,7 @@ module GpxToCsv
     output_path = "#{source_path[0..-5]}.csv"
     @output_file = File.new(output_path, "w")
 
-    def write_to_csv(latitude="latitude",longitude="longitude",elevation="elevation",velocity="velocity",distance="distance",date="date",time="time",elapsed_time="elapsed_time")
+    def write_to_csv(latitude="latitude",longitude="longitude",elevation="elevation (ft)",velocity="velocity (mph)",distance="distance (miles)",date="date",time="time",elapsed_time="elapsed_time (seconds)")
       @output_file.write("#{latitude},#{longitude},#{elevation},#{velocity},#{distance},#{date},#{time},#{elapsed_time}\n")
     end
 
